@@ -63,7 +63,7 @@ public static class IntHelper
         if (endingPoint is not null && endingPoint.Value > sp) { ep = endingPoint.Value; }
 
         // make sure they're in the right order
-        if (ep > sp) { (sp, ep) = (ep, sp); }
+        if (ep < sp) { (sp, ep) = (ep, sp); }
 
         // two is the only even prime number.  We'll handle it as a special case.
         if (sp == 2) { yield return 2; }
