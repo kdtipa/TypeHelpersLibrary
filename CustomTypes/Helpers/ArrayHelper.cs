@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CustomTypes.Helpers
@@ -44,6 +45,18 @@ namespace CustomTypes.Helpers
             return true;
         }
 
+
+        public static bool ContainsArrayByValue<T>(this T[] srcArray, T[] find) where T : IEquatable<T>
+        {
+            foreach (T item in find)
+            {
+                if (!srcArray.Contains(item)) { return false; }
+            }
+            return true;
+        }
+
+
+
         public static T[] Sort<T>(this T[] srcArray) where T : IComparable<T>
         {
             int srcLen = srcArray.Length;
@@ -71,5 +84,74 @@ namespace CustomTypes.Helpers
 
             return result;
         }
+
+        /// <summary>
+        /// Gives you the items that are unique by overall equality.  For 
+        /// finer control, see the LINQ Distinct method.
+        /// </summary>
+        public static T[] Unique<T>(this T[] srcArray) where T : IEquatable<T>
+        {
+            List<T> uniqueList = new List<T>();
+            foreach (T t in srcArray)
+            {
+                if (uniqueList.Contains(t)) { continue; }
+                uniqueList.Add(t);
+            }
+
+            return uniqueList.ToArray();
+        }
+
+
+        public static T[] Randomize<T>(this T[] srcArray, bool? useSlowRandom = null)
+        {
+            bool slow = useSlowRandom ?? false;
+
+            List<T> randList = new List<T>();
+            Random rng = new Random();
+            int sleep = 2;
+
+            foreach (T t in srcArray) 
+            { 
+                int ii = rng.Next(0, randList.Count);
+                randList.Insert(ii, t);
+
+                if (slow) { Thread.Sleep(sleep); sleep = (sleep + ii) % 10 + 1; }
+            }
+
+            return randList.ToArray();
+        }
+
+
+
+        public static string ToString(this char[] charArray)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (char c in charArray) { sb.Append(c); }
+
+            return sb.ToString();
+        }
+
+        public static int[] FromNumber(long srcVal)
+        {
+            if (srcVal == 0) { return [ 0 ]; }
+
+            List<int> digits = new();
+
+            long worker = srcVal;
+
+            while (worker != 0)
+            {
+                int digit = (int)(worker % 10);
+                digits.Insert(0, digit);
+                worker = (worker - digit) / 10;
+            }
+
+            return digits.ToArray();
+        }
+
+
+
+
     }
 }
