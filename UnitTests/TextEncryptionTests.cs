@@ -11,12 +11,11 @@ public class TextEncryptionTests
     {
         string targetStr = "I love Lucy";
 
-        TextEncryption testObj = new TextEncryption();
-        testObj.Matrix = new(TextEncryptionMatrix.GetRandomOrderChars());
+        SimpleEncryptionKey testKey = new SimpleEncryptionKey();
 
-        string encryptedString = testObj.Encrypt(targetStr);
+        string encryptedString = targetStr.Encrypt(testKey);
 
-        string decryptedString = testObj.Decrypt(encryptedString);
+        string decryptedString = encryptedString.Decrypt(testKey);
 
         Assert.AreNotEqual(targetStr, encryptedString);
         Assert.AreEqual(targetStr, decryptedString);
