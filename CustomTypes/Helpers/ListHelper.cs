@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -100,7 +101,7 @@ public static class ListHelper
     /// <param name="containingList"></param>
     /// <param name="searchForList"></param>
     /// <returns></returns>
-    public static bool ContainsOtherListByValue<T>(List<T> containingList, List<T> searchForList)
+    public static bool ContainsOtherListByValue<T>(this List<T> containingList, List<T> searchForList)
         where T : IEquatable<T>
     {
         var containerLen = containingList.Count;
@@ -140,7 +141,7 @@ public static class ListHelper
     /// <param name="sourceList"></param>
     /// <param name="BetterButSlowerRandomness"></param>
     /// <returns></returns>
-    public static IEnumerable<T> GetItemsInRandomOrder<T>(List<T> sourceList, bool? BetterButSlowerRandomness = null)
+    public static IEnumerable<T> GetItemsInRandomOrder<T>(this List<T> sourceList, bool? BetterButSlowerRandomness = null)
     {
         // get the count
         var sourceCount = sourceList.Count;
@@ -187,7 +188,7 @@ public static class ListHelper
     /// If the list might contain duplicate items, you only want one instance of 
     /// each item, this method gets you that collection.
     /// </summary>
-    public static IEnumerable<T> GetUniqueItems<T>(List<T> sourceList) where T : IEquatable<T>
+    public static IEnumerable<T> GetUniqueItems<T>(this List<T> sourceList) where T : IEquatable<T>
     {
         List<T> sentItems = new List<T>();
 
@@ -293,4 +294,220 @@ public static class ListHelper
 
 
 
+}
+
+
+public struct GroupedList<T> : IEnumerable<ItemWithCount<T>> where T : IEquatable<T>
+{
+
+    public GroupedList() { }
+
+
+    private List<ItemWithCount<T>> _items = new();
+
+    public List<T> Items
+    {
+        get
+        {
+            return _items.Select(itm => itm.Value).ToList();
+        }
+    }
+
+    public List<ItemWithCount<T>> ItemsWithCounts
+    {
+        get
+        {
+            List<ItemWithCount<T>> returnVal = new();
+            foreach (var item in _items) { returnVal.Add(item); }
+            return returnVal;
+        }
+    }
+
+
+    public ItemWithCount<T> this[T item]
+    {
+        get
+        {
+            foreach (var itm in _items) 
+            { 
+                if (itm.Match(item)) { return itm; }
+            }
+
+            throw new IndexOutOfRangeException("Given item does not exist in this list.");
+        }
+    }
+
+    public ItemWithCount<T> this[int i]
+    {
+        get
+        {
+            return _items[i];
+        }
+        set
+        {
+            _items[i] = value; 
+        }
+    }
+    
+
+    /// <summary>
+    /// Count of the uniqe items
+    /// </summary>
+    public int Count { get { return _items.Count; } }
+
+    /// <summary>
+    /// Tells you how many of that item exist in our records.  Will return 
+    /// zero if the count is set to zero or if the item doesn't exist in 
+    /// the list.  Minimum Count is zero as normal.
+    /// </summary>
+    /// <param name="item">The item to find and get a count of</param>
+    /// <returns></returns>
+    public int CountOfItem(T item)
+    {
+        foreach (var itm in _items)
+        {
+            if (itm.Match(item)) { return itm.Count; }
+        }
+        return 0;
+    }
+
+    public bool Contains(T item)
+    {
+        foreach (var itm in _items)
+        {
+            if (itm.Match(item)) { return true; }
+        }
+        return false;
+    }
+
+
+    /// <summary>
+    /// If the item already exists in the List, it will increment the count 
+    /// for that item.  By default it will incremenet by 1.  You can set the 
+    /// addCount though, which will adjust the item's count by that much.  If 
+    /// it's not in the list, it'll add the item to the list, defaulting to 1, 
+    /// or using the value provided.  Minimum count is zero.
+    /// </summary>
+    /// <param name="item"></param>
+    /// <param name="addCount"></param>
+    public void Add(T item, int? addCount = null)
+    {
+        int ac = addCount ?? 1;
+
+        if (!Contains(item))
+        {
+            // in this case, minimum is 0
+            if (ac < 0) { ac = 0; }
+            _items.Add(new ItemWithCount<T>(item, ac));
+            return;
+        }
+
+        int itemCount = _items.Count;
+        for (int i = 0; i < itemCount; i++)
+        {
+            if (_items[i].Match(item)) { _items[i].AddToCount(ac); return; }
+        }
+    }
+
+    public void AddRange(IEnumerable<T> items)
+    {
+        foreach (var item in items)
+        {
+            Add(item, 0);
+        }
+    }
+
+    public void Clear() { _items.Clear(); }
+
+    public void ClearCounts()
+    {
+        for (int i = 0; i < _items.Count; i++)
+        {
+            _items[i].SetCount(0);
+        }
+    }
+
+
+    public bool Remove(T item)
+    {
+        for (int i = 0; i < _items.Count; i++)
+        {
+            if (_items[i].Match(item)) { _items.RemoveAt(i); return true; }
+        }
+        return false;
+    }
+
+    public int RemoveAll(params T[] items)
+    {
+        int removedCount = 0;
+        for (int i = _items.Count - 1; i >= 0; i--)
+        {
+            foreach (var itm in items)
+            {
+                if (_items[i].Match(itm))
+                {
+                    _items.RemoveAt(i);
+                    removedCount++;
+                    break;
+                }
+            }
+        }
+        return removedCount;
+    }
+
+    public int IndexOf(T item)
+    {
+        for (int i = 0; i < _items.Count; i++)
+        {
+            if (_items[i].Match(item)) { return i; }
+        }
+        return -1;
+    }
+
+
+
+    public IEnumerator<ItemWithCount<T>> GetEnumerator()
+    {
+        foreach (var item in _items)
+        {
+            yield return item; 
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+}
+
+public struct ItemWithCount<T> where T : IEquatable<T>
+{
+    public ItemWithCount(T value, int? count = null) 
+    { 
+        Value = value;
+        Count = count ?? 0;
+    }
+
+    public T Value { get; private set; }
+
+    private int _count = 0;
+
+    public int Count
+    {
+        get { return _count; } 
+        set
+        {
+            if (value <= 0) { _count = 0; }
+            else { _count = value; }
+        }
+    }
+
+    public bool Match(T item) { return Value.Equals(item); }
+
+    public void AddToCount(int val)
+    {
+        Count += val;
+    }
+
+    public void SetCount(int val) { Count = val; }
 }

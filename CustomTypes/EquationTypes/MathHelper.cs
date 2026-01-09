@@ -13,6 +13,20 @@ public static class MathHelper
         return Convert.ToInt64(sourceValue - (sourceValue % 1.00000m));
     }
 
+    public static bool TryGetWholePart(decimal sourceValue, out int wholePart)
+    {
+        try
+        {
+            wholePart = Convert.ToInt32(sourceValue - (sourceValue % 1.00000m));
+            return true;
+        }
+        catch
+        {
+            wholePart = 0;
+            return false;
+        }
+    }
+
     /// <summary>
     /// The Math library has a power method that takes doubles.  This set of 
     /// methods just does the conversions for us and returns the more reasonable 
