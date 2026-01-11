@@ -10,56 +10,6 @@ namespace CustomTypes.Helpers;
 public static class DecimalHelper
 {
     /// <summary>
-    /// Allows you to compare decimal values out to a particular number of decimal 
-    /// digits.  So, if you have 6.123456 and 6.12345189 you can tell the method 
-    /// to only care about 0 to 5 digits and it'll return true.  If you want the 
-    /// fifth digit in that example to take into account that the first one would 
-    /// round up and the second would not, you should probably use 4 digits or just 
-    /// use the version of this method that gives a level of accuracy with a decimal 
-    /// value for how different the values can be and still count as equal.
-    /// </summary>
-    /// <param name="compare">The value you want to compare this decimal to.</param>
-    /// <param name="decimalDigits">
-    /// An optional number of digits to use for the comparison.  If left blank/null, 
-    /// it will default to 2 digits.  The lowest value you can pass is 0, which means 
-    /// you only care about the integer part.  The highest value you can pass is 12 
-    /// which is pretty fine detail beyond which you might as well just ask for normal 
-    /// equality.  Yes, it's arbitrary.
-    /// </param>
-    /// <returns>
-    /// Returns true if the decimal value is the same as the compare value out to at 
-    /// least the number of digits specified (or defaulted) by decimalDigits.
-    /// </returns>
-    public static bool ApproximateEquals(this decimal value, 
-        decimal compare, 
-        int? decimalDigits = null)
-    {
-        // start with figuring out number of digits...
-        int decDigits = 2; // default to 2 places
-        if (decimalDigits is not null && decimalDigits.Value >= 0 && decimalDigits.Value <= 12)
-        {
-            decDigits = decimalDigits.Value;
-        }
-
-
-        // let's get our modulus value
-        var mod = 1.0m;
-        var divCount = 0;
-        while (divCount < decDigits)
-        {
-            mod = mod / 10.0m;
-            divCount++;
-        }
-
-        // now get the decimal values out to only the specified number of digits
-        var trimVal = value - (value % mod);
-        var trimCmp = compare - (compare % mod);
-
-        // return the comparison
-        return trimVal == trimCmp;
-    }
-
-    /// <summary>
     /// This method give a way to round a decimal to a specific place, like 
     /// the ones-place to give an integer; the tenths-place (like 0.1); or 
     /// any place represented by a decimal with a 1 in the important spot 
@@ -136,64 +86,25 @@ public static class DecimalHelper
     }
 
     /// <summary>
-    /// This is an equality check on the values of the decimals used that tells you if 
-    /// the numbers are close in value.  With two digits of accuracy (the default), the 
-    /// numbers 1.25 and 1.255 would be considered approximately equal, but 1.25 and 1.258 
-    /// would not.  With 2 digits, the difference can be up to 0.005.
+    /// Tells you if two decimal values are close enough that they can be considered 
+    /// equal for whatever work you're doing.  3.14 might be close enough to 3.14159 
+    /// to count as equal.
     /// </summary>
-    /// <param name="checkVal">The value you want to compare to this object's value</param>
-    /// <param name="checkDigits">
-    /// The number of digits of accuracy you care about.  It defaults to 2 and can be set to 
-    /// 0 up to 12.  If you pass null or an invalid value, it will use 2 digits.
-    /// </param>
-    /// <returns>true if the numbers are close enough</returns>
-    public static bool ApproxEquals(this decimal sourceVal, decimal checkVal, int? checkDigits = null)
+    /// <param name="compareVal">The number to compare the parent value to</param>
+    /// <param name="howClose">How close do they need to be?  Defaults to 0.05</param>
+    /// <returns>true if the compared numbers are within the how close value difference to each other.</returns>
+    public static bool ApproxEquals(this decimal sourceVal, decimal compareVal, decimal? howClose = null)
     {
-        // might as well get the easy case out of the way
-        if (sourceVal == checkVal) { return true; }
+        if (sourceVal == compareVal) { return true; } // take care of the easy case first
+        
+        decimal accuracy = howClose ?? 0.005m;
+        accuracy = accuracy % decimal.One; // trim any whole parts
+        if (accuracy < decimal.Zero) { accuracy *= -1; } // make sure it's a positive number
 
-        // now fiddle with number of decimal digits to compare
-        int cd = 2;
-        if (checkDigits is not null && checkDigits.Value >= 0 && checkDigits.Value <= 12)
-        {
-            cd = checkDigits.Value;
-        }
+        decimal diff = sourceVal - compareVal;
+        if (diff < decimal.Zero) { diff *= -1; }
 
-        decimal acceptableDifference = 0.50000m;
-        for (int d = 0; d < cd; d++)
-        {
-            acceptableDifference *= 0.10000m;
-        }
-
-        return sourceVal - checkVal <= acceptableDifference;
-    }
-    
-    /// <summary>
-    /// Another variant of approximation for equality.  It uses the DecimalWrapper class 
-    /// to compare the values.  It essentially trims the longer number to the same number 
-    /// of decimal digits as the shorter one and compares those for equality.  So, 3.14 
-    /// and 3.14159 would be approximately equal.  But there is no rounding used, so a 
-    /// comparison between 2.49 and 2.5 would come back false.
-    /// </summary>
-    public static bool ApproximateEquals(this decimal value, decimal compare)
-    {
-        // if they're exactly equal, avoid the extra work
-        if (value == compare) { return true; }
-
-        // use our decimal wrapper class to help us with the approximation
-        DecimalWrapper dwValue = new DecimalWrapper(value);
-        int dwValDigits = dwValue.DigitsWithValue;
-        DecimalWrapper cmpVal = new DecimalWrapper(compare);
-        int cmpValDigits = cmpVal.DigitsWithValue;
-
-        // how many decimal digits do we care about?
-        int relevantDigits = dwValDigits <= cmpValDigits ? dwValDigits : cmpValDigits;
-        dwValue.SignificantDigits = relevantDigits;
-        cmpVal.SignificantDigits = relevantDigits;
-
-        // the built in equals now works as approximation based on the smaller number of digits of value.
-        // 3.14 and 3.14159 would be approximately equal
-        return dwValue.Equals(cmpVal);
+        return diff <= accuracy;
     }
 
 
@@ -232,7 +143,7 @@ public static class DecimalHelper
         }
 
         // handle the 0 case
-        if (v.ApproxEquals(0.00000m, 4))
+        if (v.ApproxEquals(decimal.Zero, 0.0001m))
         {
             numerator = 0;
             denominator = 1;
@@ -241,7 +152,7 @@ public static class DecimalHelper
 
 
         // handle the 1 case
-        if (v.ApproxEquals(1.00000m, 4))
+        if (v.ApproxEquals(decimal.One, 0.0001m))
         {
             numerator = 1;
             denominator = 1;
@@ -253,7 +164,7 @@ public static class DecimalHelper
         v = v - vIntPart;
 
         // now that we have a number from 0.00001 to 0.99999, we need to find a set of numbers that divide to that number
-        while (!v.ApproxEquals(calcVal, 4))
+        while (!v.ApproxEquals(calcVal, 0.0001m))
         {
             if (calcVal > v)
             {
@@ -301,7 +212,7 @@ public static class DecimalHelper
     }
 
 
-    public static Regex DecimalPattern { get; } = new Regex("/([+-]?[1-9][0-9]*\\.?[0-9]*)/gm", RegexOptions.Compiled);
+    public static Regex DecimalPattern { get; } = new Regex("/([+-]?[0-9]*\\.?[0-9]*)/gm", RegexOptions.Compiled);
 
     /// <summary>
     /// Gets you all the decimal values it can find withint a source string.  If the complete string is a decimal value, 

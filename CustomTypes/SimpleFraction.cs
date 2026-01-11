@@ -103,16 +103,18 @@ public struct SimpleFraction : IEquatable<SimpleFraction>, IComparable<SimpleFra
             Denominator = 1;
             return;
         }
-        
-        int accDigits = 4;
-        if (accuracyToThisManyDigits is not null) { accDigits = accuracyToThisManyDigits.Value; }
+
+        int accDigits = accuracyToThisManyDigits ?? 4;
+        if (accDigits < 1) { accDigits = 1; }
+        decimal mult = decimal.One;
+        for (int ad = 1; ad <= accDigits; ad++) { mult /= 10; }
 
         bool isNegative = value < 0.00000m;
         int N = isNegative ? -1 : 1;
         int D = 1;
         decimal testVal = (decimal)N / D;
 
-        while (!value.ApproxEquals(testVal, accDigits))
+        while (!value.ApproxEquals(testVal, mult))
         {
             if (isNegative)
             {
