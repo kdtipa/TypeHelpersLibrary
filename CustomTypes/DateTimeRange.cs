@@ -22,7 +22,7 @@ public struct DateTimeRange : IEquatable<DateTimeRange>
         if (begin > end)
         {
             Begin = end;
-            End = Begin;
+            End = begin;
         }
         else
         {

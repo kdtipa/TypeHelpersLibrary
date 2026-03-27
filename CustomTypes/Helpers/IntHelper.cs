@@ -51,19 +51,24 @@ public static class IntHelper
     }
 
 
-
+    /// <summary>
+    /// Allows you to enumerate over the prime number list.  It is advisable 
+    /// to use start and end points to limit the math that has to be done to 
+    /// find each prime number.  Without them, we default to 2 to int.MaxValue.
+    /// </summary>
+    /// <param name="startingPoint">Minimum 2.  The lowest number you want in your range.</param>
+    /// <param name="endingPoint">Maximum int.MaxValue.  The highest number you want in your range.</param>
+    /// <returns>The collection of prime numbers within your specified range.</returns>
     public static IEnumerable<int> GetPrimeNumbers(int? startingPoint = null, int? endingPoint = null)
     {
-        // get a useful starting point
-        int sp = 2;
-        if (startingPoint is not null && startingPoint.Value > 2) { sp = startingPoint.Value; }
-
-        // get a useful end point
-        int ep = int.MaxValue;
-        if (endingPoint is not null && endingPoint.Value > sp) { ep = endingPoint.Value; }
+        int sp = startingPoint ?? 2;
+        int ep = endingPoint ?? int.MaxValue;
 
         // make sure they're in the right order
         if (ep < sp) { (sp, ep) = (ep, sp); }
+
+        // if ep is less than 2, the user has specified a range with no prime numbers...
+        if (ep < 2) { yield break; }
 
         // two is the only even prime number.  We'll handle it as a special case.
         if (sp == 2) { yield return 2; }
@@ -99,6 +104,7 @@ public static class IntHelper
             if (value % x == 0) { return false; }
         }
 
+        // if we got here, we didn't find an even division.
         return true;
     }
 

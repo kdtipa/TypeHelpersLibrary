@@ -227,7 +227,7 @@ public static class ListHelper
         }
     }
 
-    public static IEnumerable<T> Combine<T>(this List<T> sourceList, T additionalValue, bool? addToFront)
+    public static IEnumerable<T> Combine<T>(this List<T> sourceList, T additionalValue, bool? addToFront = null)
     {
         if (addToFront is null || addToFront == false)
         {

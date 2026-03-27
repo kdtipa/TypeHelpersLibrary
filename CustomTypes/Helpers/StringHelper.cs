@@ -414,25 +414,25 @@ public static class StringHelper
     /// A list of indices where your find string exists.  If it 
     /// does NOT exist in the base string, the List is empty.
     /// </returns>
-    public static List<int> IndexesOf(this string srcString, string? findStr)
+    public static List<int> IndexesOf(this string srcString, string findStr, bool? ignoreCase = null)
     {
         var results = new List<int>();
 
         if (string.IsNullOrEmpty(srcString) 
          || string.IsNullOrEmpty(findStr) 
-         || srcString.Length < findStr.Length 
-         || !srcString.Contains(findStr))
+         || srcString.Length < findStr.Length)
         {
             return results;
         }
 
         var srcLen = srcString.Length;
         var fndLen = findStr.Length;
+        var fndSpan = findStr.AsSpan();
+        var strComp = (ignoreCase ?? false) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
         for (int i = 0; i < srcLen - fndLen; i++)
         {
-            var srcTest = srcString.Substring(i, fndLen);
-            if (string.Equals(srcTest, findStr, StringComparison.OrdinalIgnoreCase))
+            if (fndSpan.Equals(srcString.AsSpan(i, fndLen), strComp))
             {
                 results.Add(i);
             }
@@ -457,14 +457,8 @@ public static class StringHelper
         // loop through all the characters...
         foreach (char c in srcString)
         {
-            if (returnVal.ContainsKey(c))
-            {
-                returnVal[c]++;
-            }
-            else
-            {
-                returnVal.Add(c, 1);
-            }
+            if (returnVal.ContainsKey(c)) { returnVal[c]++; }
+            else { returnVal.Add(c, 1); }
         }
 
         return returnVal;
@@ -542,6 +536,38 @@ public static class StringHelper
         }
 
     }
+
+    /// <summary>
+    /// This version of Split keeps the delimiter with the previous string.  An example 
+    /// of a useful situation might be splitting text into sentences by splitting on 
+    /// periods, exclamation points, and question marks.  And this way, you know which 
+    /// delimiter caused each split.
+    /// </summary>
+    public static IEnumerable<string> SplitKeep(this string srcString, params char[] delimiters)
+    {
+        var worker = new StringBuilder();
+
+        foreach (char c in srcString)
+        {
+            if (delimiters.Contains(c))
+            {
+                // we found a break character
+                worker.Append(c);
+                yield return worker.ToString();
+                worker.Clear();
+            }
+            else
+            {
+                worker.Append(c);
+            }
+        }
+
+        // the last character might not be a delimiter, so we check to see if we have anything left in the worker
+        if (worker.Length > 0) { yield return worker.ToString(); }
+    }
+
+
+
 
     /// <summary>
     /// Allows you to replace a set of characters with a single other character while 
@@ -989,6 +1015,27 @@ public static class StringHelper
         }
 
         return result.ToString();
+    }
+
+
+
+    public static bool ArrangeableAsPalindrome(this string sourceString, bool? ignoreSpaces = null)
+    {
+        Dictionary<char, int> inventory = new();
+        bool isc = ignoreSpaces ?? true;
+        char[] spaceChars = { ' ', '\t', '\n' };
+
+        foreach (char c in sourceString)
+        {
+            if (isc && spaceChars.Contains(c)) { continue; }
+
+            if (inventory.ContainsKey(c)) { inventory[c] += 1; }
+            else { inventory.Add(c, 1); }
+        }
+
+        int odds = inventory.Count(item => item.Value % 2 != 0);
+
+        return odds <= 1;
     }
 
 
